@@ -20,4 +20,4 @@ Keymap are provided for OSX, Windows, and Linux, however, they have only been te
 
 Note
 ----
-This is a work in progress so expect bugs.  Please open an issue at https://github.com/notanumber/gitst2 if you discover a problem or would like to see a feature/change implemented.
+This is a work in progress so expect bugs. Please open an issue at https://github.com/notanumber/gitst2 if you discover a problem or would like to see a feature/change implemented.
