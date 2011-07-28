@@ -317,6 +317,11 @@ class GitLogCommand(sublime_plugin.TextCommand):
             else:
                 print "Path %s does not exist or is a directory" % filepath
 
+    def open_ticket(self, ticket):
+        url = "http://issues.liferay.com/browse/%s" % ticket
+
+        AsyncProcess(["firefox", url], self)
+
     def show_diff(self, sha1, sha2):
         p = subprocess.Popen(["git diff " + sha1 + " " + sha2 + " -- " + file_name], stdout=subprocess.PIPE, cwd=folder_name, shell=True)
         p.wait()
