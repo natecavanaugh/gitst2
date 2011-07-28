@@ -6,14 +6,12 @@ import thread
 import sublime
 import sublime_plugin
 
-
 class ProcessListener(object):
     def on_data(self, proc, data):
         pass
 
     def on_finished(self, proc):
         pass
-
 
 class AsyncProcess(object):
     def __init__(self, arg_list, listener):
@@ -70,20 +68,18 @@ class AsyncProcess(object):
                 self.proc.stderr.close()
                 break
 
-
 class GitAddCommand(sublime_plugin.TextCommand):
     def is_enabled(self, *args):
         if self.view.file_name():
             return True
         return False
-    
+
     def run(self, edit):
         if self.view.file_name():
             folder_name, file_name = os.path.split(self.view.file_name())
 
         print folder_name, file_name
         self.view.window().run_command('exec', {'cmd': ['git', 'add', file_name], 'working_dir': folder_name, 'quiet': True})
-
 
 class GitCheckoutCommand(sublime_plugin.TextCommand):
     def run(self, edit, branch_or_path=''):
@@ -102,7 +98,6 @@ class GitCheckoutCommand(sublime_plugin.TextCommand):
 
         self.view.window().run_command('exec', {'cmd': ['git', 'checkout', branch_or_path], 'working_dir': folder_name, 'quiet': True})
         self.view.run_command('revert')
-
 
 class GitCommitCommand(sublime_plugin.TextCommand):
     def run(self, edit, message='', all=False):
@@ -127,7 +122,6 @@ class GitCommitCommand(sublime_plugin.TextCommand):
             folder_name = os.path.dirname(self.view.file_name())
 
         self.view.window().run_command('exec', {'cmd': ['git', 'commit', '-am', message], 'working_dir': folder_name, 'quiet': True})
-
 
 class GitDiffCommand(sublime_plugin.TextCommand, ProcessListener):
     def run(self, edit, encoding='utf-8', kill=False):
@@ -212,7 +206,6 @@ class GitDiffCommand(sublime_plugin.TextCommand, ProcessListener):
     def on_finished(self, proc):
         sublime.set_timeout(functools.partial(self.finish, proc), 0)
 
-
 class GitInitCommand(sublime_plugin.TextCommand):
     def run(self, edit, folder_name=''):
         if not folder_name:
@@ -238,7 +231,6 @@ class GitLogCommand(sublime_plugin.TextCommand):
 
         self.view.window().run_command('exec', {'cmd': ['git', 'log', file_name], 'working_dir': folder_name, 'quiet': True})
 
-
 class GitMvCommand(sublime_plugin.TextCommand):
     def run(self, edit, destination=''):
         if not destination:
@@ -252,58 +244,53 @@ class GitMvCommand(sublime_plugin.TextCommand):
 
         self.view.window().run_command('exec', {'cmd': ['git', 'mv', source, destination], 'working_dir': folder_name, 'quiet': True})
 
-
 class GitResetCommand(sublime_plugin.TextCommand):
     def is_enabled(self, *args):
         if self.view.file_name():
             return True
         return False
-    
+
     def run(self, edit, mode='--', commit='HEAD'):
         if self.view.file_name():
             folder_name, file_name = os.path.split(self.view.file_name())
 
         self.view.window().run_command('exec', {'cmd': ['git', 'reset', mode, commit, file_name], 'working_dir': folder_name, 'quiet': True})
 
-
 class GitRmCommand(sublime_plugin.TextCommand):
     def is_enabled(self, *args):
         if self.view.file_name():
             return True
         return False
-    
+
     def run(self, edit):
         if self.view.file_name():
             folder_name, file_name = os.path.split(self.view.file_name())
 
         self.view.window().run_command('exec', {'cmd': ['git', 'rm', file_name], 'working_dir': folder_name, 'quiet': True})
 
-
 class GitStatusCommand(sublime_plugin.TextCommand):
     def is_enabled(self, *args):
         if self.view.file_name():
             return True
         return False
-    
+
     def run(self, edit):
         if self.view.file_name():
             folder_name = os.path.dirname(self.view.file_name())
 
         self.view.window().run_command('exec', {'cmd': ['git', 'status'], 'working_dir': folder_name, 'quiet': True})
 
-
 class GitBlameCommand(sublime_plugin.TextCommand):
     def is_enabled(self, *args):
         if self.view.file_name():
             return True
         return False
-    
+
     def run(self, edit):
         if self.view.file_name():
             folder_name, file_name = os.path.split(self.view.file_name())
 
         self.view.window().run_command('exec', {'cmd': ['git', 'blame', file_name], 'working_dir': folder_name, 'quiet': True})
-
 
 class GitBlameCommand(sublime_plugin.TextCommand, ProcessListener):
     def run(self, edit, encoding='utf-8', kill=False):
@@ -385,7 +372,6 @@ class GitBlameCommand(sublime_plugin.TextCommand, ProcessListener):
 
     def on_finished(self, proc):
         sublime.set_timeout(functools.partial(self.finish, proc), 0)
-
 
 class GitTagCommand(sublime_plugin.TextCommand):
     def run(self, edit, tag_name=''):
