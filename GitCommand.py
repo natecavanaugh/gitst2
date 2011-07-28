@@ -1,5 +1,6 @@
 import functools
 import os
+import re
 import subprocess
 import thread
 
@@ -224,12 +225,115 @@ class GitLogCommand(sublime_plugin.TextCommand):
         if self.view.file_name():
             return True
         return False
-    
-    def run(self, edit):
-        if self.view.file_name():
-            folder_name, file_name = os.path.split(self.view.file_name())
 
-        self.view.window().run_command('exec', {'cmd': ['git', 'log', file_name], 'working_dir': folder_name, 'quiet': True})
+    def run(self, edit):
+        global log
+        global folder_name
+        global file_name
+        global git_base_dir
+
+        folder_name, file_name = os.path.split(self.view.file_name())
+
+        p = subprocess.Popen(["git", "log", "--format=%cr by %an - %s sha:%H", file_name], stdout=subprocess.PIPE, cwd=folder_name)
+        p.wait()
+
+        log = p.stdout.readlines()
+
+        p = subprocess.Popen(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE, cwd=folder_name)
+        p.wait()
+
+        git_base_dir = p.stdout.readlines()[0].rstrip()
+
+        self.view.window().show_quick_panel(log, self.on_select_log)
+
+    def on_select_log(self, index):
+        if index == -1:
+            return False
+
+        global jira_ticket, options_command, selected_index, window
+
+        window = self.view.window()
+
+        selected_index = index
+
+        indexes = 1
+
+        options = ["%d. Open Files" % indexes]
+        options_command = ["open_files"]
+
+        jira_ticket_pattern = "(AUI|LPE|LPP|LPS)-([0-9]+)"
+
+        match = re.search(jira_ticket_pattern, log[index])
+
+        if match:
+            jira_ticket = match.group()
+
+            indexes += 1
+
+            options.append("%(indexes)d. Open ticket (%(ticket)s) in JIRA" % \
+                            {"indexes": indexes, "ticket": jira_ticket})
+            
+            options_command.append("open_ticket")
+
+        if index > 0:
+            indexes += 1
+            
+            options.append("%d. Show file diff" % indexes)
+            options_command.append("show_diff")
+
+        self.view.window().show_quick_panel(options, self.on_select_option)
+
+    def on_select_option(self, index):
+        if index == -1:
+            return False
+
+        command = options_command[index]
+
+        if command == "open_files":
+            message = log[selected_index]
+            sha = message.split('sha:')[1].rstrip()
+
+            self.open_files(sha)
+        elif command == "open_ticket":
+            self.open_ticket(jira_ticket)
+        else:
+            message1 = log[selected_index]
+            sha1 = message1.split('sha:')[1].rstrip()
+
+            message2 = log[selected_index-1]
+            sha2 = message2.split('sha:')[1].rstrip()
+
+            self.show_diff(sha1, sha2)
+
+    def open_files(self, sha):
+        p = subprocess.Popen(["git show --pretty=\"format:\" --name-only " + sha], stdout=subprocess.PIPE, cwd=folder_name, shell=True)
+        p.wait()
+
+        for f in p.stdout.readlines():
+            filepath = os.path.join(git_base_dir, f.rstrip())
+
+            if os.path.exists(filepath) and not os.path.isdir(filepath):
+                window.open_file(filepath)
+            else:
+                print "Path %s does not exist or is a directory" % filepath
+
+    def show_diff(self, sha1, sha2):
+        p = subprocess.Popen(["git diff " + sha1 + " " + sha2 + " -- " + file_name], stdout=subprocess.PIPE, cwd=folder_name, shell=True)
+        p.wait()
+
+        output_view = self.view.window().new_file()
+
+        output_view.set_scratch(True)
+        output_view.set_name('%s.diff' % os.path.basename(file_name))
+        output_view.set_syntax_file('Packages/Diff/Diff.tmLanguage')
+
+        output_view.set_read_only(False)
+        edit = output_view.begin_edit()
+
+        output_view.insert(edit, output_view.size(), ''.join(p.stdout.readlines()))
+
+        output_view.end_edit(edit)
+        output_view.set_read_only(True)
 
 class GitMvCommand(sublime_plugin.TextCommand):
     def run(self, edit, destination=''):
