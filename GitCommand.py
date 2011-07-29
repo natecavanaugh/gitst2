@@ -234,7 +234,7 @@ class GitLogCommand(sublime_plugin.TextCommand):
 
         folder_name, file_name = os.path.split(self.view.file_name())
 
-        p = subprocess.Popen(["git", "log", "--format=%cr by %an - %s sha:%H", file_name], stdout=subprocess.PIPE, cwd=folder_name)
+        p = subprocess.Popen(["git", "log", "--format=%cr by %an - %s sha:%h", file_name], stdout=subprocess.PIPE, cwd=folder_name)
         p.wait()
 
         log = p.stdout.readlines()
@@ -281,7 +281,20 @@ class GitLogCommand(sublime_plugin.TextCommand):
             options.append("%d. Show file diff" % indexes)
             options_command.append("show_diff")
 
+            indexes += 1
+
+            options.append("%(indexes)d. Copy sha:%(selected_index)s to clipboard" % \
+                            { "indexes": indexes, "selected_index": self.get_selected_sha() })
+
+            options_command.append("copy_to_clipboard")
         self.view.window().show_quick_panel(options, self.on_select_option)
+
+    def get_selected_sha(self):
+        return self.get_sha(selected_index)
+
+    def get_sha(self, index):
+        message = log[index]
+        return message.split('sha:')[1].rstrip()
 
     def on_select_option(self, index):
         if index == -1:
@@ -289,21 +302,16 @@ class GitLogCommand(sublime_plugin.TextCommand):
 
         command = options_command[index]
 
-        if command == "open_files":
-            message = log[selected_index]
-            sha = message.split('sha:')[1].rstrip()
-
-            self.open_files(sha)
+        if command == "copy_to_clipboard":
+            sha = self.get_selected_sha()
+            sublime.set_clipboard(sha)
+            sublime.status_message("Copied to clipboard GIT sha: %s" % sha)
+        elif command == "open_files":
+            self.open_files(self.get_selected_sha())
         elif command == "open_ticket":
             self.open_ticket(jira_ticket)
         else:
-            message1 = log[selected_index]
-            sha1 = message1.split('sha:')[1].rstrip()
-
-            message2 = log[selected_index-1]
-            sha2 = message2.split('sha:')[1].rstrip()
-
-            self.show_diff(sha1, sha2)
+            self.show_diff(self.get_selected_sha(), self.get_sha(selected_index-1))
 
     def open_files(self, sha):
         p = subprocess.Popen(["git show --pretty=\"format:\" --name-only " + sha], stdout=subprocess.PIPE, cwd=folder_name, shell=True)
